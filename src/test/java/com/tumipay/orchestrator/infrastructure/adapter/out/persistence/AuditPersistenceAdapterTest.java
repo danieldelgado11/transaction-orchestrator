@@ -1,8 +1,6 @@
 package com.tumipay.orchestrator.infrastructure.adapter.out.persistence;
 
 import com.tumipay.orchestrator.domain.model.*;
-import com.tumipay.orchestrator.infrastructure.adapter.out.persistence.entity.CustomerAuditEntity;
-import com.tumipay.orchestrator.infrastructure.adapter.out.persistence.entity.TransactionAuditEntity;
 import com.tumipay.orchestrator.infrastructure.adapter.out.persistence.repository.CustomerAuditJpaRepository;
 import com.tumipay.orchestrator.infrastructure.adapter.out.persistence.repository.TransactionAuditJpaRepository;
 import org.junit.jupiter.api.DisplayName;
