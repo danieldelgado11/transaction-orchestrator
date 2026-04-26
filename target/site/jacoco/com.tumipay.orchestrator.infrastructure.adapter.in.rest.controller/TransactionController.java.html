@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TransactionController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">transaction-orchestrator</a> &gt; <a href="index.source.html" class="el_package">com.tumipay.orchestrator.infrastructure.adapter.in.rest.controller</a> &gt; <span class="el_source">TransactionController.java</span></div><h1>TransactionController.java</h1><pre class="source lang-java linenums">package com.tumipay.orchestrator.infrastructure.adapter.in.rest.controller;
+
+import com.tumipay.orchestrator.domain.model.Transaction;
+import com.tumipay.orchestrator.domain.port.in.CreateTransactionCommand;
+import com.tumipay.orchestrator.domain.port.in.TransactionUseCase;
+import com.tumipay.orchestrator.infrastructure.adapter.in.rest.dto.request.CreateTransactionRequest;
+import com.tumipay.orchestrator.infrastructure.adapter.in.rest.dto.response.ApiResponse;
+import com.tumipay.orchestrator.infrastructure.adapter.in.rest.dto.response.TransactionResponse;
+import com.tumipay.orchestrator.infrastructure.adapter.in.rest.mapper.TransactionRestMapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
+
+/**
+ * Adaptador HTTP de entrada — traduce peticiones HTTP en comandos de aplicación.
+ * NO contiene ninguna lógica de negocio; solo delega al puerto de caso de uso.
+ *
+ * Versionado de API mediante ruta URI (/v1/) siguiendo mejores prácticas REST.
+ */
+@RestController
+@RequestMapping(&quot;/v1/transactions&quot;)
+<span class="fc" id="L28">@RequiredArgsConstructor</span>
+@Tag(name = &quot;Transacciones&quot;, description = &quot;API de Orquestación de Transacciones&quot;)
+public class TransactionController {
+
+    private final TransactionUseCase transactionUseCase;
+    private final TransactionRestMapper mapper;
+
+    /**
+     * POST /v1/transactions
+     * Crea y orquesta una nueva transacción de pago.
+     *
+     * @param request cuerpo de la petición validado
+     * @return 201 CREATED con datos de la transacción en caso de éxito
+     */
+    @PostMapping
+    @Operation(summary = &quot;Crear una nueva transacción&quot;, description = &quot;Orquesta una transacción de pago a través del adaptador de proveedor apropiado&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;TransactionResponse&gt;&gt; createTransaction(
+            @Valid @RequestBody CreateTransactionRequest request) {
+
+<span class="fc" id="L47">        CreateTransactionCommand command = mapper.toCommand(request);</span>
+<span class="fc" id="L48">        Transaction transaction = transactionUseCase.createTransaction(command);</span>
+<span class="fc" id="L49">        TransactionResponse response = mapper.toResponse(transaction);</span>
+
+<span class="fc" id="L51">        return ResponseEntity</span>
+<span class="fc" id="L52">                .status(HttpStatus.CREATED)</span>
+<span class="fc" id="L53">                .body(ApiResponse.success(response));</span>
+    }
+
+    /**
+     * GET /v1/transactions/{transaction_id}
+     * Recupera una transacción por su identificador interno.
+     *
+     * @param transactionId el UUID asignado por este microservicio
+     * @return 200 OK con datos de la transacción
+     */
+    @GetMapping(&quot;/{transaction_id}&quot;)
+    @Operation(summary = &quot;Obtener transacción por ID&quot;, description = &quot;Recupera los detalles completos de la transacción mediante el UUID interno de transacción&quot;)
+    public ResponseEntity&lt;ApiResponse&lt;TransactionResponse&gt;&gt; getTransaction(
+            @PathVariable(&quot;transaction_id&quot;) UUID transactionId) {
+
+<span class="fc" id="L68">        Transaction transaction = transactionUseCase.getTransaction(transactionId);</span>
+<span class="fc" id="L69">        TransactionResponse response = mapper.toResponse(transaction);</span>
+
+<span class="fc" id="L71">        return ResponseEntity.ok(ApiResponse.success(response));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

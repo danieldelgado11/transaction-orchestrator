@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Transaction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">transaction-orchestrator</a> &gt; <a href="index.source.html" class="el_package">com.tumipay.orchestrator.domain.model</a> &gt; <span class="el_source">Transaction.java</span></div><h1>Transaction.java</h1><pre class="source lang-java linenums">package com.tumipay.orchestrator.domain.model;
+
+import lombok.Builder;
+import lombok.Getter;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+/**
+ * Raíz agregada de Transacción - entidad de dominio central.
+ * Encapsula todas las reglas de negocio relacionadas con una transacción de pago.
+ */
+@Getter
+<span class="pc" id="L14">@Builder</span>
+public class Transaction {
+
+<span class="fc" id="L17">    private final UUID id;</span>
+<span class="fc" id="L18">    private final String clientTransactionId;</span>
+<span class="fc" id="L19">    private final Long amountCents;</span>
+<span class="fc" id="L20">    private final String currencyCode;</span>
+<span class="fc" id="L21">    private final String countryCode;</span>
+<span class="fc" id="L22">    private final String paymentMethodId;</span>
+<span class="fc" id="L23">    private final String webhookUrl;</span>
+<span class="fc" id="L24">    private final String redirectUrl;</span>
+<span class="fc" id="L25">    private final String description;</span>
+<span class="fc" id="L26">    private final Long expirationSeconds;</span>
+<span class="fc" id="L27">    private final TransactionStatus status;</span>
+<span class="fc" id="L28">    private final Customer customer;</span>
+<span class="fc" id="L29">    private final LocalDateTime processedAt;</span>
+<span class="fc" id="L30">    private final LocalDateTime createdAt;</span>
+
+    public static Transaction create(
+            String clientTransactionId,
+            Long amountCents,
+            String currencyCode,
+            String countryCode,
+            String paymentMethodId,
+            String webhookUrl,
+            String redirectUrl,
+            String description,
+            Long expirationSeconds,
+            Customer customer) {
+
+<span class="fc" id="L44">        return Transaction.builder()</span>
+<span class="fc" id="L45">                .id(UUID.randomUUID())</span>
+<span class="fc" id="L46">                .clientTransactionId(clientTransactionId)</span>
+<span class="fc" id="L47">                .amountCents(amountCents)</span>
+<span class="fc" id="L48">                .currencyCode(normalizeCode(currencyCode))</span>
+<span class="fc" id="L49">                .countryCode(normalizeCode(countryCode))</span>
+<span class="fc" id="L50">                .paymentMethodId(paymentMethodId)</span>
+<span class="fc" id="L51">                .webhookUrl(webhookUrl)</span>
+<span class="fc" id="L52">                .redirectUrl(redirectUrl)</span>
+<span class="fc" id="L53">                .description(description)</span>
+<span class="fc" id="L54">                .expirationSeconds(expirationSeconds)</span>
+<span class="fc" id="L55">                .status(TransactionStatus.PENDING)</span>
+<span class="fc" id="L56">                .customer(customer)</span>
+<span class="fc" id="L57">                .processedAt(LocalDateTime.now())</span>
+<span class="fc" id="L58">                .createdAt(LocalDateTime.now())</span>
+<span class="fc" id="L59">                .build();</span>
+    }
+
+    private static String normalizeCode(String code) {
+<span class="fc bfc" id="L63" title="All 2 branches covered.">        return code == null ? null : code.trim().toUpperCase();</span>
+    }
+
+    public Transaction withStatus(TransactionStatus newStatus) {
+<span class="fc" id="L67">        return Transaction.builder()</span>
+<span class="fc" id="L68">                .id(this.id)</span>
+<span class="fc" id="L69">                .clientTransactionId(this.clientTransactionId)</span>
+<span class="fc" id="L70">                .amountCents(this.amountCents)</span>
+<span class="fc" id="L71">                .currencyCode(this.currencyCode)</span>
+<span class="fc" id="L72">                .countryCode(this.countryCode)</span>
+<span class="fc" id="L73">                .paymentMethodId(this.paymentMethodId)</span>
+<span class="fc" id="L74">                .webhookUrl(this.webhookUrl)</span>
+<span class="fc" id="L75">                .redirectUrl(this.redirectUrl)</span>
+<span class="fc" id="L76">                .description(this.description)</span>
+<span class="fc" id="L77">                .expirationSeconds(this.expirationSeconds)</span>
+<span class="fc" id="L78">                .status(newStatus)</span>
+<span class="fc" id="L79">                .customer(this.customer)</span>
+<span class="fc" id="L80">                .processedAt(this.processedAt)</span>
+<span class="fc" id="L81">                .createdAt(this.createdAt)</span>
+<span class="fc" id="L82">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

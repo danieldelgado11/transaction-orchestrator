@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-04-24T20:28:14-0500",
+    date = "2026-04-26T12:53:52-0500",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 17.0.12 (Oracle Corporation)"
 )
 @Component
@@ -77,6 +77,7 @@ public class TransactionPersistenceMapperImpl implements TransactionPersistenceM
 
         CustomerEntity.CustomerEntityBuilder customerEntity = CustomerEntity.builder();
 
+        customerEntity.id( customer.getId() );
         customerEntity.documentType( customer.getDocumentType() );
         customerEntity.documentNumber( customer.getDocumentNumber() );
         customerEntity.countryCallingCode( customer.getCountryCallingCode() );
@@ -98,6 +99,7 @@ public class TransactionPersistenceMapperImpl implements TransactionPersistenceM
 
         Customer.CustomerBuilder customer = Customer.builder();
 
+        customer.id( entity.getId() );
         customer.documentType( entity.getDocumentType() );
         customer.documentNumber( entity.getDocumentNumber() );
         customer.countryCallingCode( entity.getCountryCallingCode() );

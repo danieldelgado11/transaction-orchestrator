@@ -3,12 +3,17 @@ package com.tumipay.orchestrator.application.service;
 import com.tumipay.orchestrator.domain.exception.DuplicateTransactionException;
 import com.tumipay.orchestrator.domain.exception.PaymentProviderNotFoundException;
 import com.tumipay.orchestrator.domain.exception.TransactionNotFoundException;
+import com.tumipay.orchestrator.domain.model.Customer;
 import com.tumipay.orchestrator.domain.model.Transaction;
 import com.tumipay.orchestrator.domain.model.TransactionStatus;
+import com.tumipay.orchestrator.domain.port.in.AuditUseCase;
 import com.tumipay.orchestrator.domain.port.in.CreateTransactionCommand;
 import com.tumipay.orchestrator.domain.port.in.TransactionUseCase;
+import com.tumipay.orchestrator.domain.port.out.CircuitBreakerPort;
+import com.tumipay.orchestrator.domain.port.out.CustomerRepository;
 import com.tumipay.orchestrator.domain.port.out.PaymentProviderPort;
 import com.tumipay.orchestrator.domain.port.out.TransactionRepository;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -38,26 +43,63 @@ import java.util.stream.Collectors;
 public class TransactionService implements TransactionUseCase {
 
     private final TransactionRepository transactionRepository;
+    private final CustomerRepository customerRepository;
+    private final AuditUseCase auditUseCase;
     private final List<PaymentProviderPort> paymentProviders;
+    private final CircuitBreakerPort circuitBreaker;
 
-    /**
-     * Registro construido perezosamente: paymentMethodId → adaptador de proveedor.
-     * Usar un Mapa en lugar de cadenas if/else hace que agregar proveedores sea O(1).
-     */
     private Map<String, PaymentProviderPort> providerRegistry;
+
+    @PostConstruct
+    void initializeProviderRegistry() {
+        this.providerRegistry = paymentProviders.stream()
+                .collect(Collectors.toMap(
+                        PaymentProviderPort::getSupportedPaymentMethodId,
+                        Function.identity()
+                ));
+    }
 
     @Override
     @Transactional
     public Transaction createTransaction(CreateTransactionCommand command) {
         log.info("Creando transacción para clientTransactionId={}", command.getClientTransactionId());
 
-        // Guardia de idempotencia
-        if (transactionRepository.existsByClientTransactionId(command.getClientTransactionId())) {
-            throw new DuplicateTransactionException(command.getClientTransactionId());
-        }
+        validateIdempotency(command.getClientTransactionId());
 
-        // Construir objeto de dominio
-        Transaction transaction = Transaction.create(
+        // Build transaction and get customer creation status
+        var customerResult = resolveCustomer(command.getCustomer());
+        Transaction transaction = buildTransaction(command, customerResult.customer());
+
+        Transaction saved = transactionRepository.save(transaction);
+        log.info("Transacción persistida con id={}", saved.getId());
+
+        // Pass isNewCustomer flag to audit only if customer was actually created
+        auditUseCase.auditTransactionCreation(saved, customerResult.isNew());
+
+        Transaction finalTransaction = processWithProvider(saved, command.getPaymentMethodId());
+
+        log.info("Transacción id={} procesada con status={}", finalTransaction.getId(), finalTransaction.getStatus());
+        return finalTransaction;
+    }
+
+    private CustomerRepository.CustomerResult resolveCustomer(Customer customer) {
+        var result = customerRepository.findOrCreate(customer);
+        log.debug("Cliente resuelto: id={}, isNew={}, document={}/{}",
+                result.customer().getId(),
+                result.isNew(),
+                result.customer().getDocumentType(),
+                result.customer().getDocumentNumber());
+        return result;
+    }
+
+    private void validateIdempotency(String clientTransactionId) {
+        if (transactionRepository.existsByClientTransactionId(clientTransactionId)) {
+            throw new DuplicateTransactionException(clientTransactionId);
+        }
+    }
+
+    private Transaction buildTransaction(CreateTransactionCommand command, Customer customer) {
+        return Transaction.create(
                 command.getClientTransactionId(),
                 command.getAmountCents(),
                 command.getCurrencyCode(),
@@ -67,22 +109,21 @@ public class TransactionService implements TransactionUseCase {
                 command.getRedirectUrl(),
                 command.getDescription(),
                 command.getExpirationSeconds(),
-                command.getCustomer()
+                customer
         );
+    }
 
-        // Persistir ANTES de enviar al proveedor (auditoría + garantía al-menos-una-vez)
-        Transaction saved = transactionRepository.save(transaction);
-        log.info("Transacción persistida con id={}", saved.getId());
+    private Transaction processWithProvider(Transaction saved, String paymentMethodId) {
+        PaymentProviderPort provider = resolveProvider(paymentMethodId);
+        TransactionStatus resultStatus = circuitBreaker.executeWithCircuitBreaker(provider, saved);
 
-        // Enrutar al adaptador de proveedor correcto (patrón Strategy)
-        PaymentProviderPort provider = resolveProvider(command.getPaymentMethodId());
-        TransactionStatus resultStatus = provider.process(saved);
-
-        // Actualizar estado después de la respuesta del proveedor
         Transaction updated = saved.withStatus(resultStatus);
         Transaction finalTransaction = transactionRepository.save(updated);
 
-        log.info("Transacción id={} procesada con status={}", finalTransaction.getId(), resultStatus);
+        if (resultStatus != saved.getStatus()) {
+            auditUseCase.auditTransactionUpdate(finalTransaction, saved.getStatus());
+        }
+
         return finalTransaction;
     }
 
@@ -94,17 +135,11 @@ public class TransactionService implements TransactionUseCase {
     }
 
     private PaymentProviderPort resolveProvider(String paymentMethodId) {
-        if (providerRegistry == null) {
-            providerRegistry = paymentProviders.stream()
-                    .collect(Collectors.toMap(
-                            PaymentProviderPort::getSupportedPaymentMethodId,
-                            Function.identity()
-                    ));
-        }
         PaymentProviderPort provider = providerRegistry.get(paymentMethodId);
         if (provider == null) {
             throw new PaymentProviderNotFoundException(paymentMethodId);
         }
         return provider;
     }
+
 }

@@ -5,6 +5,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * DTO de entrada para la creación de transacciones.
@@ -12,6 +13,7 @@ import lombok.NoArgsConstructor;
  * Las anotaciones de validación refuerzan las reglas de campos obligatorios en la capa adaptadora HTTP.
  */
 @Getter
+@Setter
 @NoArgsConstructor
 public class CreateTransactionRequest {
 
@@ -26,13 +28,13 @@ public class CreateTransactionRequest {
     private Long amountCents;
 
     @NotBlank(message = "currency_code es obligatorio")
-    @Pattern(regexp = "^[A-Za-z]{3}$", message = "currency_code debe ser un código ISO 4217 de 3 letras")
+    @Pattern(regexp = "^[A-Z]{3}$", message = "currency_code debe ser un código ISO 4217 de 3 letras")
     @JsonProperty("currency_code")
     private String currencyCode;
 
     @NotBlank(message = "country_code es obligatorio")
     @Size(min = 2, max = 2, message = "country_code debe ser exactamente 2 caracteres")
-    @Pattern(regexp = "^[A-Za-z]{2}$", message = "country_code debe ser un código ISO 3166-1 Alpha-2 de 2 letras")
+    @Pattern(regexp = "^[A-Z]{2}$", message = "country_code debe ser un código ISO 3166-1 Alpha-2 de 2 letras")
     @JsonProperty("country_code")
     private String countryCode;
 

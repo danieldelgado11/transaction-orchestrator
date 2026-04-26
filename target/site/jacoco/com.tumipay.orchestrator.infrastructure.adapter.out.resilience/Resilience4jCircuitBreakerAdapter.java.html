@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Resilience4jCircuitBreakerAdapter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">transaction-orchestrator</a> &gt; <a href="index.source.html" class="el_package">com.tumipay.orchestrator.infrastructure.adapter.out.resilience</a> &gt; <span class="el_source">Resilience4jCircuitBreakerAdapter.java</span></div><h1>Resilience4jCircuitBreakerAdapter.java</h1><pre class="source lang-java linenums">package com.tumipay.orchestrator.infrastructure.adapter.out.resilience;
+
+import com.tumipay.orchestrator.domain.model.Transaction;
+import com.tumipay.orchestrator.domain.model.TransactionStatus;
+import com.tumipay.orchestrator.domain.port.out.CircuitBreakerPort;
+import com.tumipay.orchestrator.domain.port.out.PaymentProviderPort;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
+/**
+ * Adaptador de salida que implementa Circuit Breaker usando Resilience4j.
+ * Este adaptador pertenece a la capa de infraestructura y encapsula
+ * el framework Resilience4j, manteniendo el dominio y aplicación libres
+ * de dependencias externas.
+ *
+ * Implementa el puerto CircuitBreakerPort definido en el dominio.
+ */
+<span class="fc" id="L19">@Slf4j</span>
+@Component
+<span class="fc" id="L21">public class Resilience4jCircuitBreakerAdapter implements CircuitBreakerPort {</span>
+
+    private static final String CIRCUIT_BREAKER_NAME = &quot;payment-provider&quot;;
+
+    /**
+     * Ejecuta el procesamiento con protección de Circuit Breaker.
+     * Si el circuito está abierto, invoca el fallback method automáticamente.
+     *
+     * @param provider el proveedor de pago a utilizar
+     * @param transaction la transacción a procesar
+     * @return el estado resultante del procesamiento
+     */
+    @Override
+    @CircuitBreaker(name = CIRCUIT_BREAKER_NAME, fallbackMethod = &quot;fallbackProcess&quot;)
+    public TransactionStatus executeWithCircuitBreaker(PaymentProviderPort provider, Transaction transaction) {
+<span class="fc" id="L36">        log.debug(&quot;Ejecutando con Circuit Breaker: provider={}, transactionId={}&quot;,</span>
+<span class="fc" id="L37">                provider.getSupportedPaymentMethodId(), transaction.getId());</span>
+<span class="fc" id="L38">        return provider.process(transaction);</span>
+    }
+
+    /**
+     * Fallback method cuando el Circuit Breaker está abierto u ocurre un error.
+     * Marca la transacción como FAILED para permitir reintento posterior.
+     *
+     * @param provider el proveedor que falló
+     * @param transaction la transacción que se intentó procesar
+     * @param throwable la excepción que causó el fallo
+     * @return FAILED para permitir reintentos manuales o automáticos
+     */
+    @SuppressWarnings(&quot;unused&quot;)
+    private TransactionStatus fallbackProcess(PaymentProviderPort provider, Transaction transaction, Throwable throwable) {
+<span class="nc" id="L52">        log.warn(&quot;Circuit Breaker activado para proveedor {}: {}. Marcando transacción {} como FAILED&quot;,</span>
+<span class="nc" id="L53">                provider.getSupportedPaymentMethodId(),</span>
+<span class="nc" id="L54">                throwable.getMessage(),</span>
+<span class="nc" id="L55">                transaction.getId());</span>
+<span class="nc" id="L56">        return TransactionStatus.FAILED;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

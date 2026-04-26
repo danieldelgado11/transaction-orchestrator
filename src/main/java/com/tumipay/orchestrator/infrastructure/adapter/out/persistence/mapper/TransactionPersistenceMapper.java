@@ -2,7 +2,6 @@ package com.tumipay.orchestrator.infrastructure.adapter.out.persistence.mapper;
 
 import com.tumipay.orchestrator.domain.model.Customer;
 import com.tumipay.orchestrator.domain.model.Transaction;
-import com.tumipay.orchestrator.domain.model.TransactionStatus;
 import com.tumipay.orchestrator.infrastructure.adapter.out.persistence.entity.CustomerEntity;
 import com.tumipay.orchestrator.infrastructure.adapter.out.persistence.entity.TransactionEntity;
 import org.mapstruct.Mapper;
@@ -38,17 +37,21 @@ public interface TransactionPersistenceMapper {
 
     /**
      * Convierte un objeto de dominio Customer en una entidad CustomerEntity.
+     * Customer es una Entity con identidad propia.
      *
-     * @param customer el objeto de valor del dominio
+     * @param customer el objeto de dominio
      * @return la entidad JPA correspondiente
      */
+    @Mapping(target = "id", source = "id")
     CustomerEntity toCustomerEntity(Customer customer);
 
     /**
      * Convierte una entidad CustomerEntity en un objeto de dominio Customer.
+     * Customer es una Entity con identidad propia.
      *
      * @param entity la entidad JPA
-     * @return el objeto de valor del dominio
+     * @return el objeto de dominio
      */
+    @Mapping(target = "id", source = "id")
     Customer toCustomer(CustomerEntity entity);
 }

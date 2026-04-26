@@ -27,36 +27,47 @@ Microservicio de orquestación de transacciones de pago construido con **Spring 
 El microservicio sigue el modelo de **Arquitectura Hexagonal** (también conocida como Ports & Adapters o Clean Architecture):
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        INFRASTRUCTURE                           │
-│                                                                 │
-│  ┌──────────────────┐              ┌──────────────────────────┐ │
-│  │  Inbound Adapter │              │    Outbound Adapters     │ │
-│  │  (REST / HTTP)   │              │                          │ │
-│  │                  │              │  ┌────────────────────┐  │ │
-│  │  TransactionCon- │              │  │ TransactionPers-   │  │ │
-│  │  troller         │              │  │ istenceAdapter     │  │ │
-│  └────────┬─────────┘              │  │ (JPA/PostgreSQL)   │  │ │
-│           │                        │  └────────────────────┘  │ │
-│           │ calls                  │                          │ │
-│           ▼                        │  ┌────────────────────┐  │ │
-│  ┌─────────────────────────────┐   │  │ MockPaymentPro-    │  │ │
-│  │        APPLICATION          │   │  │ viderAdapter       │  │ │
-│  │                             │   │  │ (PSP Integration)  │  │ │
-│  │  TransactionService         │───┼─▶└────────────────────┘  │ │
-│  │  (implements Use Case port) │   │                          │ │
-│  └──────────────┬──────────────┘   └──────────────────────────┘ │
-│                 │                                               │
-│       ┌─────────▼─────────┐                                     │
-│       │      DOMAIN       │                                     │
-│       │                   │                                     │
-│       │  Transaction      │                                     │
-│       │  Customer         │                                     │
-│       │  TransactionStatus│                                     │
-│       │  (Ports defined   │                                     │
-│       │   here)           │                                     │
-│       └───────────────────┘                                     │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            INFRASTRUCTURE                                   │
+│                                                                             │
+│  ┌──────────────────┐                    ┌──────────────────────────────┐   │
+│  │  Inbound Adapter │                    │      Outbound Adapters       │   │
+│  │  (REST / HTTP)   │                    │                              │   │
+│  │                  │                    │  ┌────────────────────────┐  │   │
+│  │  TransactionCon- │                    │  │ TransactionPersistence │  │   │
+│  │  troller         │                    │  │ Adapter (JPA)          │  │   │
+│  └────────┬─────────┘                    │  └────────────────────────┘  │   │
+│           │                              │                              │   │
+│           │ calls                        │  ┌────────────────────────┐  │   │
+│           ▼                              │  │ CustomerRepository     │  │   │
+│  ┌─────────────────────────────┐       │  │ (JPA)                  │  │   │
+│  │        APPLICATION          │       │  └────────────────────────┘  │   │
+│  │                             │       │                              │   │
+│  │  ┌───────────────────────┐  │       │  ┌────────────────────────┐  │   │
+│  │  │ TransactionService    │  │       │  │ MockPaymentProvider    │  │   │
+│  │  │ (TransactionUseCase)  │──┼───────┼─▶│ Adapter (PSP)          │  │   │
+│  │  └───────────────────────┘  │       │  └────────────────────────┘  │   │
+│  │                             │       │                              │   │
+│  │  ┌───────────────────────┐  │       │  ┌────────────────────────┐  │   │
+│  │  │ AuditService          │  │       │  │ Resilience4jCircuit    │  │   │
+│  │  │ (AuditUseCase)        │──┼───────┼─▶│ BreakerAdapter           │  │   │
+│  │  └───────────────────────┘  │       │  └────────────────────────┘  │   │
+│  │                             │       │                              │   │
+│  └──────────────┬──────────────┘       │  ┌────────────────────────┐  │   │
+│                 │                      │  │ KafkaAuditPublisher    │  │   │
+│       ┌─────────▼─────────┐            │  │ Adapter (Kafka)        │  │   │
+│       │      DOMAIN       │            │  └────────────────────────┘  │   │
+│       │                   │            │                              │   │
+│       │  ┌─────────────┐  │            │  ┌────────────────────────┐  │   │
+│       │  │ Transaction │  │            │  │ AuditPersistence       │  │   │
+│       │  │ Customer    │  │            │  │ Adapter (JPA)          │  │   │
+│       │  │ Transaction │  │            │  └────────────────────────┘  │   │
+│       │  │ Status      │  │            └──────────────────────────────┘   │
+│       │  │ AuditEvent  │  │                                                 │
+│       │  │ (Ports)     │  │                                                 │
+│       │  └─────────────┘  │                                                 │
+│       └───────────────────┘                                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Capas
@@ -77,10 +88,14 @@ El microservicio sigue el modelo de **Arquitectura Hexagonal** (también conocid
 | **Strategy + Registry** | `TransactionService` + proveedores | Agregar nuevos PSPs sin modificar código existente |
 | **Factory Method** | `Transaction.create()` | Encapsular la construcción del agregado con lógica de inicialización |
 | **Command** | `CreateTransactionCommand` | Transportar datos de la petición HTTP hacia el caso de uso |
-| **Repository** | `TransactionRepository` (port) + `TransactionPersistenceAdapter` | Abstraer el acceso a datos |
+| **Repository** | `TransactionRepository`, `CustomerRepository` (ports) | Abstraer el acceso a datos |
 | **Mapper** (MapStruct) | `TransactionRestMapper`, `TransactionPersistenceMapper` | Convertir entre capas sin acoplamiento |
 | **Facade** | `TransactionController` | Simplificar la interfaz HTTP al caso de uso |
 | **Template Method** | `GlobalExceptionHandler` | Manejar familias de excepciones de forma uniforme |
+| **Circuit Breaker** | `CircuitBreakerPort` + `Resilience4jCircuitBreakerAdapter` | Tolerancia a fallos con proveedores de pago |
+| **Event-Driven** | `AuditService` + `KafkaAuditPublisherAdapter` | Auditoría asíncrona desacoplada |
+| **Transactional Outbox** | `AuditService` (afterCommit) | Garantizar consistencia eventual de auditoría |
+| **Anti-Corruption Layer** | Mappers entre capas | Aislar el modelo de dominio de modelos externos |
 
 ---
 
@@ -90,43 +105,60 @@ El microservicio sigue el modelo de **Arquitectura Hexagonal** (también conocid
 src/main/java/com/tumipay/orchestrator/
 ├── domain/
 │   ├── model/
-│   │   ├── Transaction.java          ← Aggregate Root
-│   │   ├── Customer.java             ← Value Object
-│   │   └── TransactionStatus.java    ← Enum de estados
+│   │   ├── Transaction.java              ← Aggregate Root
+│   │   ├── Customer.java                 ← Entity
+│   │   ├── TransactionStatus.java        ← Enum de estados
+│   │   ├── AuditAction.java              ← Enum de acciones de auditoría
+│   │   ├── TransactionAuditEvent.java    ← Evento de dominio
+│   │   └── CustomerAuditEvent.java       ← Evento de dominio
 │   ├── port/
 │   │   ├── in/
-│   │   │   ├── TransactionUseCase.java        ← Puerto primario
+│   │   │   ├── TransactionUseCase.java   ← Puerto primario
+│   │   │   ├── AuditUseCase.java         ← Puerto primario (auditoría)
 │   │   │   └── CreateTransactionCommand.java
 │   │   └── out/
-│   │       ├── TransactionRepository.java     ← Puerto secundario
-│   │       └── PaymentProviderPort.java       ← Puerto secundario
+│   │       ├── TransactionRepository.java      ← Puerto secundario
+│   │       ├── CustomerRepository.java           ← Puerto secundario
+│   │       ├── PaymentProviderPort.java          ← Puerto secundario
+│   │       ├── CircuitBreakerPort.java         ← Puerto secundario (resiliencia)
+│   │       ├── AuditPublisherPort.java         ← Puerto secundario (auditoría)
+│   │       └── AuditRepositoryPort.java        ← Puerto secundario (auditoría)
 │   └── exception/
 │       ├── TransactionNotFoundException.java
 │       ├── DuplicateTransactionException.java
 │       └── PaymentProviderNotFoundException.java
 ├── application/
 │   └── service/
-│       └── TransactionService.java   ← Implementa TransactionUseCase
+│       ├── TransactionService.java       ← Implementa TransactionUseCase
+│       └── AuditService.java             ← Implementa AuditUseCase
 └── infrastructure/
     ├── adapter/
     │   ├── in/rest/
     │   │   ├── controller/TransactionController.java
     │   │   ├── dto/request/
-    │   │   │   ├── CreateTransactionRequest.java
-    │   │   │   └── CustomerRequest.java
     │   │   ├── dto/response/
-    │   │   │   ├── ApiResponse.java
-    │   │   │   └── TransactionResponse.java
     │   │   └── mapper/TransactionRestMapper.java
     │   └── out/
     │       ├── persistence/
     │       │   ├── TransactionPersistenceAdapter.java
+    │       │   ├── CustomerPersistenceAdapter.java
+    │       │   ├── AuditPersistenceAdapter.java    ← Persistencia de auditoría
     │       │   ├── entity/TransactionEntity.java
     │       │   ├── entity/CustomerEntity.java
+    │       │   ├── entity/TransactionAuditEntity.java
+    │       │   ├── entity/CustomerAuditEntity.java
     │       │   ├── repository/JpaTransactionRepository.java
+    │       │   ├── repository/JpaCustomerRepository.java
+    │       │   ├── repository/TransactionAuditJpaRepository.java
+    │       │   ├── repository/CustomerAuditJpaRepository.java
     │       │   └── mapper/TransactionPersistenceMapper.java
-    │       └── provider/
-    │           └── MockPaymentProviderAdapter.java
+    │       ├── provider/
+    │       │   └── MockPaymentProviderAdapter.java
+    │       ├── resilience/
+    │       │   └── Resilience4jCircuitBreakerAdapter.java  ← Circuit Breaker
+    │       └── messaging/kafka/
+    │           ├── KafkaAuditPublisherAdapter.java         ← Publicación de auditoría
+    │           └── KafkaAuditConsumer.java
     └── exception/
         └── GlobalExceptionHandler.java
 ```
@@ -137,14 +169,14 @@ src/main/java/com/tumipay/orchestrator/
 
 ### Base URL
 ```
-http://localhost:8080/api/v1
+http://localhost:8080/v1/transactions
 ```
 
 ### POST /transactions — Crear Transacción
 
 **Request:**
 ```json
-POST /api/v1/transactions
+POST /v1/transactions
 Content-Type: application/json
 
 {
@@ -189,10 +221,10 @@ Content-Type: application/json
 }
 ```
 
-### GET /transactions/{transaction_id} — Consultar Transacción
+### GET /v1/transactions/{transaction_id} — Consultar Transacción
 
 ```
-GET /api/v1/transactions/550e8400-e29b-41d4-a716-446655440000
+GET /v1/transactions/550e8400-e29b-41d4-a716-446655440000
 ```
 
 **Response 200 OK:** (misma estructura `data` de arriba)
@@ -207,51 +239,62 @@ GET /api/v1/transactions/550e8400-e29b-41d4-a716-446655440000
 | `003` | 404 | Transacción no encontrada |
 | `004` | 400 | Proveedor de pago no disponible para el método indicado |
 | `005` | 500 | Error interno del servidor |
+| `006` | 409 | Conflicto de concurrencia (transacción modificada por otro proceso) |
 
 ---
 
 ## Modelo de Base de Datos
 
 ```
-┌─────────────────────────────────────┐
-│           customers                 │
-├─────────────────────────────────────┤
-│ PK id                UUID           │
-│    document_type     VARCHAR(20)    │
-│    document_number   VARCHAR(50)    │
-│    country_calling_code VARCHAR(6)  │
-│    phone_number      VARCHAR(20)    │
-│    email             VARCHAR(254)   │
-│    first_name        VARCHAR(100)   │
-│    middle_name       VARCHAR(100)   │
-│    last_name         VARCHAR(100)   │
+┌─────────────────────────────────────┐      ┌──────────────────────────────────────┐
+│           customers                 │      │         customer_audit               │
+├─────────────────────────────────────┤      ├──────────────────────────────────────┤
+│ PK id                UUID           │◄─────│ FK customer_id       UUID            │
+│ UQ document_type     VARCHAR(20)    │      │    action            VARCHAR(10)     │
+│ UQ document_number   VARCHAR(50)    │      │    document_type     VARCHAR(20)     │
+│    country_calling_code VARCHAR(6)  │      │    document_number   VARCHAR(50)     │
+│    phone_number      VARCHAR(20)    │      │    email             VARCHAR(254)    │
+│ UQ email             VARCHAR(254)   │      │    changed_by        VARCHAR(100)    │
+│    first_name        VARCHAR(100)   │      │    changed_at        TIMESTAMP       │
+│    middle_name       VARCHAR(100)   │      │    transaction_id    UUID            │
+│    last_name         VARCHAR(100)   │      └──────────────────────────────────────┘
 │    second_last_name  VARCHAR(100)   │
 └──────────────────┬──────────────────┘
                    │ 1
                    │
-                   │ 1
-┌──────────────────▼──────────────────┐
-│           transactions              │
-├─────────────────────────────────────┤
-│ PK id                UUID           │
-│ UQ client_transaction_id VARCHAR    │
-│    amount_cents      BIGINT         │
-│    currency_code     CHAR(3)        │
-│    country_code      CHAR(2)        │
-│    payment_method_id VARCHAR(50)    │
-│    webhook_url       VARCHAR(500)   │
-│    redirect_url      VARCHAR(500)   │
-│    description       VARCHAR(255)   │
-│    expiration_seconds BIGINT        │
-│    status            VARCHAR(20)    │
+                   │ *
+┌──────────────────▼──────────────────┐      ┌──────────────────────────────────────┐
+│           transactions              │      │       transaction_audit              │
+├─────────────────────────────────────┤      ├──────────────────────────────────────┤
+│ PK id                UUID           │◄─────│ FK transaction_id    UUID            │
+│ UQ client_transaction_id VARCHAR    │      │    action            VARCHAR(10)     │
+│    amount_cents      BIGINT         │      │    client_trans_id   VARCHAR(100)  │
+│    currency_code     CHAR(3)        │      │    amount_cents      BIGINT          │
+│    country_code      CHAR(2)        │      │    currency_code     VARCHAR(3)      │
+│    payment_method_id VARCHAR(50)    │      │    status            VARCHAR(20)     │
+│    webhook_url       VARCHAR(500)   │      │    old_status        VARCHAR(20)     │
+│    redirect_url      VARCHAR(500)   │      │    customer_id       UUID            │
+│    description       VARCHAR(255)   │      │    changed_by        VARCHAR(100)    │
+│    expiration_seconds BIGINT        │      │    changed_at        TIMESTAMP       │
+│    status            VARCHAR(20)   │      └──────────────────────────────────────┘
 │    processed_at      TIMESTAMP TZ   │
 │    created_at        TIMESTAMP TZ   │
 │    updated_at        TIMESTAMP TZ   │
 │ FK customer_id       UUID           │
+│    version           INTEGER        │
 └─────────────────────────────────────┘
 ```
 
-Los scripts SQL están en `sql/transaction_orchestrator_schema.sql`.
+**Diseño DDD:** Customer es una **Entity** (tiene identidad propia). Un cliente puede tener múltiples transacciones (relación 1:N). Se busca/crea por documento (tipo+número) o email para mantener idempotencia y evitar duplicados.
+
+**Tablas de Auditoría:** Las tablas `customer_audit` y `transaction_audit` registran todos los cambios (INSERT, UPDATE, DELETE) para cumplimiento normativo y trazabilidad completa.
+
+*Beneficios:* historial consolidado del cliente, KYC, límites de riesgo, análisis de comportamiento de compra, auditoría completa para compliance.
+
+Los scripts SQL están en:
+- `sql/transaction_orchestrator_schema.sql` — Schema completo
+- `src/main/resources/db/migration/V1__init_schema.sql` — Migración inicial (Flyway)
+- `src/main/resources/db/migration/V2__audit_tables.sql` — Migración de tablas de auditoría
 
 ---
 
@@ -286,8 +329,17 @@ Push/PR → [1] Build & Test → [2] Code Quality → [3] Docker Build
 | Tipo | Herramienta | Cobertura objetivo |
 |------|-------------|-------------------|
 | Unitarios | JUnit 5 + Mockito | 80%+ líneas de negocio |
-| Integración | Spring Boot Test + Testcontainers (PostgreSQL real) | Flujos completos |
+| Integración | Spring Boot Test + Testcontainers (PostgreSQL + Kafka) | Flujos completos con BD y mensajería reales |
 | Contrato | Spring MVC Test (`@WebMvcTest`) | Todos los endpoints |
+| Componentes | `@SpringBootTest` | AuditService, CircuitBreaker, Mappers |
+
+### Tests Implementados
+
+- `TransactionServiceTest` — Unitarios del servicio de transacciones (mock de repositorios, proveedores, circuit breaker)
+- `AuditServiceTest` — Unitarios de publicación de auditoría con verificación de TransactionSynchronization
+- `TransactionPersistenceMapperTest` — Verificación de conversión entre entidades JPA y objetos de dominio
+- `Resilience4jCircuitBreakerAdapterTest` — Tests de integración del Circuit Breaker
+- `TransactionControllerIntegrationTest` — Tests de integración de endpoints REST
 
 ### Herramientas de Calidad
 
@@ -304,6 +356,8 @@ Push/PR → [1] Build & Test → [2] Code Quality → [3] Docker Build
 - Manejo centralizado de excepciones (`@RestControllerAdvice`)
 - Logging estructurado con niveles apropiados (`@Slf4j`)
 - Transaccionalidad declarativa (`@Transactional`)
+- Publicación de eventos después del commit (`TransactionSynchronization`)
+- Null-safety con `Objects.requireNonNull` en adaptadores
 
 ---
 
@@ -376,11 +430,31 @@ mvn verify                  # Unitarios + integración + cobertura
 
 **Razón:** Versionado y reproducibilidad del esquema en todos los ambientes (dev, staging, prod).
 
+### 7. Circuit Breaker con Resilience4j
+**Decisión:** Implementar Circuit Breaker como puerto secundario (`CircuitBreakerPort`) con adaptador Resilience4j.
+
+**Razón:** Protege contra cascadas de fallos cuando un PSP está caído. El adaptador implementa fallback automático que marca transacciones como `FAILED` para reintento posterior, sin afectar el dominio ni la aplicación.
+
+### 8. Auditoría asíncrona con Event-Driven
+**Decisión:** La auditoría se publica a Kafka y persiste en BD mediante eventos, usando `AuditUseCase` como puerto de entrada.
+
+**Razón:** Desacopla la auditoría del flujo transaccional principal. Usa Transactional Outbox pattern (publicación después del commit) para garantizar consistencia eventual sin afectar latencia de la API.
+
+### 9. Customer como Entity separada
+**Decisión:** Customer tiene su propia tabla y repositorio (`CustomerRepository`), no es un Value Object embebido.
+
+**Razón:** Permite historial consolidado del cliente, KYC, límites de riesgo y análisis de comportamiento. La lógica `findOrCreate` garantiza idempotencia por documento o email.
+
+### 10. Optimistic Locking con @Version
+**Decisión:** Campo `version` en `transactions` para control de concurrencia optimista.
+
+**Razón:** Evita condiciones de carrera cuando múltiples procesos intentan actualizar la misma transacción simultáneamente.
+
 ---
 
 ## Suposiciones
 
-1. **Un cliente por transacción:** Se asume que cada transacción tiene exactamente un objeto cliente. No hay reutilización de clientes entre transacciones en esta versión.
+1. **Customer como Entity:** Un cliente tiene identidad propia (UUID) y puede tener múltiples transacciones. Se busca/crea por documento (tipo+número) o email para mantener idempotencia. Esto permite historial consolidado del cliente, KYC, y análisis de comportamiento.
 2. **Idempotencia por `client_transaction_id`:** Se asume que este campo es la clave de idempotencia provista por el cliente. Si ya existe, se rechaza con código `002`.
 3. **Autenticación externa:** No se implementa autenticación/autorización en esta prueba. En producción se agregaría OAuth2/JWT mediante Spring Security.
 4. **Notificación webhook asíncrona:** La notificación al webhook se asume asíncrona (fuera del scope de la prueba). En producción se implementaría con un message broker (Kafka/RabbitMQ).
@@ -393,10 +467,13 @@ mvn verify                  # Unitarios + integración + cobertura
 
 | Riesgo | Impacto | Probabilidad | Mitigación |
 |--------|---------|-------------|------------|
-| Timeout del PSP sin respuesta | Alto | Media | Implementar circuit breaker (Resilience4j) y reintentos con backoff exponencial |
-| Duplicación de transacción por retry del cliente | Alto | Alta | Idempotencia implementada por `client_transaction_id` único en BD |
+| Timeout del PSP sin respuesta | Alto | Media | ✅ Circuit Breaker implementado con Resilience4j; reintentos con backoff exponencial |
+| Duplicación de transacción por retry del cliente | Alto | Alta | ✅ Idempotencia implementada por `client_transaction_id` único en BD |
+| Duplicación de cliente (mismo documento/email) | Medio | Media | ✅ Unique constraints en BD + lógica `findOrCreate` en CustomerRepository |
 | Carga alta en el orquestador | Medio | Media | Escalar horizontalmente (stateless), caché con Redis para consultas frecuentes |
-| Fallo de BD entre persistir y enviar al PSP | Alto | Baja | Estado `PENDING` permite reconciliación; job programado para reintentar transacciones atascadas |
-| Cambio de esquema sin migración | Alto | Baja | Flyway + validación DDL en arranque (`ddl-auto: validate`) |
-| Exposición de datos sensibles en logs | Alto | Media | Nunca loguear datos de cliente; usar masking en herramientas de observabilidad |
+| Fallo de BD entre persistir y enviar al PSP | Alto | Baja | ✅ Estado `PENDING` permite reconciliación; job programado para reintentar transacciones atascadas |
+| Cambio de esquema sin migración | Alto | Baja | ✅ Flyway + validación DDL en arranque (`ddl-auto: validate`) |
+| Condición de carrera en actualización | Alto | Media | ✅ Optimistic locking con @Version en entidades JPA |
+| Pérdida de eventos de auditoría | Medio | Media | ✅ Kafka con ACKs=all; persistencia en BD como backup; monitoreo de lag |
+| Exposición de datos sensibles en logs | Alto | Media | ✅ Nunca loguear datos de cliente; usar masking en herramientas de observabilidad |
 | Falta de autenticación | Crítico | — | Agregar Spring Security + OAuth2 antes de ir a producción |
