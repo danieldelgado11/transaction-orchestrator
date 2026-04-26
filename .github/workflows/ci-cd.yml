@@ -33,7 +33,7 @@ jobs:
           --health-retries 5
 
       kafka:
-        image: bitnami/kafka:3.5.0
+        image: bitnami/kafka:3.5.1
         env:
           KAFKA_ENABLE_KRAFT: yes
           KAFKA_CFG_NODE_ID: 1
