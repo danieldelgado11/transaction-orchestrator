@@ -5,7 +5,11 @@ import com.tumipay.orchestrator.infrastructure.adapter.in.rest.dto.request.Custo
 import com.tumipay.orchestrator.infrastructure.adapter.in.rest.dto.response.ApiResponse;
 import com.tumipay.orchestrator.infrastructure.adapter.in.rest.dto.response.TransactionResponse;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -15,13 +19,10 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.GenericContainer;
+import org.springframework.test.context.ContextConfiguration;
+import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -30,43 +31,47 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Usa TestContainers para PostgreSQL y levanta el contexto completo de Spring.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
+@ContextConfiguration(initializers = TransactionIntegrationTest.TestConfig.class)
 @org.springframework.test.context.ActiveProfiles("test")
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class TransactionIntegrationTest {
 
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine")
-            .withDatabaseName("test_orchestrator")
-            .withUsername("test")
-            .withPassword("test");
+    static class TestConfig implements org.springframework.context.ApplicationContextInitializer<org.springframework.context.ConfigurableApplicationContext> {
+        static PostgreSQLContainer<?> postgres;
+        static KafkaContainer kafka;
 
-    @Container
-    static GenericContainer<?> kafka = new GenericContainer<>("docker.redpanda.com/redpandadata/redpanda:v23.2.14")
-            .withExposedPorts(9092)
-            .withCommand(
-                "redpanda", "start",
-                "--kafka-addr", "internal://0.0.0.0:9092,external://0.0.0.0:9093",
-                "--advertise-kafka-addr", "internal://localhost:9092,external://localhost:9093",
-                "--smp", "1",
-                "--memory", "512M",
-                "--mode", "dev-container",
-                "--default-log-level=warn"
-            )
-            .waitingFor(Wait.forLogMessage(".*Successfully started Redpanda!.*", 1));
+        @Override
+        public void initialize(org.springframework.context.ConfigurableApplicationContext context) {
+            // Start containers before Spring context loads
+            if (postgres == null) {
+                postgres = new PostgreSQLContainer<>("postgres:15-alpine")
+                        .withDatabaseName("test_orchestrator")
+                        .withUsername("test")
+                        .withPassword("test");
+                postgres.start();
+            }
+            if (kafka == null) {
+                kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.5.0"));
+                kafka.start();
+            }
 
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.flyway.enabled", () -> "true");
-        registry.add("spring.kafka.bootstrap-servers", () -> kafka.getHost() + ":" + kafka.getMappedPort(9092));
+            // Set properties after containers are running
+            org.springframework.test.context.support.TestPropertySourceUtils.addInlinedPropertiesToEnvironment(context,
+                    "spring.datasource.url=" + postgres.getJdbcUrl(),
+                    "spring.datasource.username=" + postgres.getUsername(),
+                    "spring.datasource.password=" + postgres.getPassword(),
+                    "spring.flyway.enabled=true",
+                    "spring.kafka.bootstrap-servers=" + kafka.getBootstrapServers()
+            );
+        }
     }
 
     @Autowired
     private TestRestTemplate restTemplate;
 
     @Test
+    @Order(1)
     @DisplayName("Debe crear transacción y retornar 201 con datos válidos")
     void createTransaction_success() {
         // Given
@@ -90,6 +95,7 @@ class TransactionIntegrationTest {
     }
 
     @Test
+    @Order(2)
     @DisplayName("Debe retornar 409 cuando clientTransactionId es duplicado")
     void createTransaction_duplicate() {
         // Given - First transaction
@@ -116,6 +122,7 @@ class TransactionIntegrationTest {
     }
 
     @Test
+    @Order(3)
     @DisplayName("Debe retornar 422 cuando falla validación de request")
     void createTransaction_validationError() {
         // Given - Invalid request (missing required fields)
@@ -139,6 +146,7 @@ class TransactionIntegrationTest {
     }
 
     @Test
+    @Order(4)
     @DisplayName("Debe recuperar transacción por id después de creación")
     void getTransaction_afterCreation() {
         // Given - Create transaction first
@@ -173,6 +181,7 @@ class TransactionIntegrationTest {
     }
 
     @Test
+    @Order(5)
     @DisplayName("Debe retornar 404 cuando transacción no se encuentra")
     void getTransaction_notFound() {
         // Given

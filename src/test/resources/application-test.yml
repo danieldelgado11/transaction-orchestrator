@@ -1,6 +1,6 @@
 spring:
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     listener:
       auto-startup: false
     admin:
@@ -16,3 +16,4 @@ logging:
   level:
     org.apache.kafka: ERROR
     org.springframework.kafka: ERROR
+    com.tumipay: DEBUG
