@@ -43,8 +43,8 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - name: Run tests with coverage
-        run: mvn -B verify
+      - name: Clean and run tests with coverage
+        run: mvn -B clean verify
         env:
           DB_HOST: localhost
           DB_PORT: 5432
@@ -80,6 +80,9 @@ jobs:
           distribution: temurin
           cache: maven
 
+      - name: Clean before analysis
+        run: mvn -B clean
+
       - name: SonarQube analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -111,8 +114,8 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - name: Build JAR (skip tests — already ran)
-        run: mvn -B package -DskipTests
+      - name: Clean and build JAR (skip tests — already ran)
+        run: mvn -B clean package -DskipTests
 
       - name: Log in to Container Registry
         uses: docker/login-action@v3
