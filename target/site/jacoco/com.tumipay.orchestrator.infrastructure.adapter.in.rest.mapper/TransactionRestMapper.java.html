@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TransactionRestMapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">transaction-orchestrator</a> &gt; <a href="index.source.html" class="el_package">com.tumipay.orchestrator.infrastructure.adapter.in.rest.mapper</a> &gt; <span class="el_source">TransactionRestMapper.java</span></div><h1>TransactionRestMapper.java</h1><pre class="source lang-java linenums">package com.tumipay.orchestrator.infrastructure.adapter.in.rest.mapper;
+
+import com.tumipay.orchestrator.domain.model.Customer;
+import com.tumipay.orchestrator.domain.model.Transaction;
+import com.tumipay.orchestrator.domain.port.in.CreateTransactionCommand;
+import com.tumipay.orchestrator.infrastructure.adapter.in.rest.dto.request.CreateTransactionRequest;
+import com.tumipay.orchestrator.infrastructure.adapter.in.rest.dto.response.TransactionResponse;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+
+/**
+ * Mapper MapStruct para convertir entre DTOs REST y objetos de dominio.
+ * Transforma las peticiones HTTP en comandos de aplicación y las entidades de dominio en respuestas HTTP.
+ */
+@Mapper(componentModel = &quot;spring&quot;)
+public interface TransactionRestMapper {
+
+    /**
+     * Convierte una petición REST en un comando de creación de transacción.
+     *
+     * @param request la petición HTTP de creación de transacción
+     * @return el comando de dominio para crear la transacción
+     */
+    @Mapping(target = &quot;customer&quot;, expression = &quot;java(toCustomer(request.getCustomer()))&quot;)
+    CreateTransactionCommand toCommand(CreateTransactionRequest request);
+
+    /**
+     * Convierte un CustomerRequest en un objeto de dominio Customer.
+     * Método por defecto para manejar la conversión anidada.
+     *
+     * @param req el DTO de petición del cliente
+     * @return el objeto de valor Customer del dominio
+     */
+    default Customer toCustomer(com.tumipay.orchestrator.infrastructure.adapter.in.rest.dto.request.CustomerRequest req) {
+<span class="pc bpc" id="L35" title="1 of 2 branches missed.">        if (req == null) return null;</span>
+<span class="fc" id="L36">        return Customer.builder()</span>
+<span class="fc" id="L37">                .documentType(req.getDocumentType())</span>
+<span class="fc" id="L38">                .documentNumber(req.getDocumentNumber())</span>
+<span class="fc" id="L39">                .countryCallingCode(req.getCountryCallingCode())</span>
+<span class="fc" id="L40">                .phoneNumber(req.getPhoneNumber())</span>
+<span class="fc" id="L41">                .email(req.getEmail())</span>
+<span class="fc" id="L42">                .firstName(req.getFirstName())</span>
+<span class="fc" id="L43">                .middleName(req.getMiddleName())</span>
+<span class="fc" id="L44">                .lastName(req.getLastName())</span>
+<span class="fc" id="L45">                .secondLastName(req.getSecondLastName())</span>
+<span class="fc" id="L46">                .build();</span>
+    }
+
+    /**
+     * Convierte una entidad de dominio Transaction en una respuesta REST.
+     *
+     * @param transaction la transacción del dominio
+     * @return el DTO de respuesta para la API REST
+     */
+    @Mapping(target = &quot;transactionId&quot;, source = &quot;id&quot;)
+    @Mapping(target = &quot;status&quot;, expression = &quot;java(transaction.getStatus().name())&quot;)
+    TransactionResponse toResponse(Transaction transaction);
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

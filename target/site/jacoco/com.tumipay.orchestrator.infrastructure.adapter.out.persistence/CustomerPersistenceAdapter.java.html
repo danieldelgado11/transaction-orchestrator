@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CustomerPersistenceAdapter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">transaction-orchestrator</a> &gt; <a href="index.source.html" class="el_package">com.tumipay.orchestrator.infrastructure.adapter.out.persistence</a> &gt; <span class="el_source">CustomerPersistenceAdapter.java</span></div><h1>CustomerPersistenceAdapter.java</h1><pre class="source lang-java linenums">package com.tumipay.orchestrator.infrastructure.adapter.out.persistence;
+
+import com.tumipay.orchestrator.domain.model.Customer;
+import com.tumipay.orchestrator.domain.port.out.CustomerRepository;
+import com.tumipay.orchestrator.infrastructure.adapter.out.persistence.entity.CustomerEntity;
+import com.tumipay.orchestrator.infrastructure.adapter.out.persistence.mapper.TransactionPersistenceMapper;
+import com.tumipay.orchestrator.infrastructure.adapter.out.persistence.repository.JpaCustomerRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
+import java.util.Optional;
+import java.util.UUID;
+
+/**
+ * Adaptador de salida — implementa el puerto de persistencia de clientes usando JPA.
+ *
+ * Decisiones de diseño:
+ * - Idempotencia SOLO por documento (tipo + número).
+ *   El email se puede actualizar pero no se usa para buscar cliente existente.
+ * - Si el cliente existe por documento, actualiza los datos (nombres, teléfono, email, etc.)
+ *   pero mantiene el ID. Esto permite que un cliente tenga múltiples transacciones.
+ */
+<span class="fc" id="L24">@Slf4j</span>
+@Component
+<span class="fc" id="L26">@RequiredArgsConstructor</span>
+public class CustomerPersistenceAdapter implements CustomerRepository {
+
+    private final JpaCustomerRepository jpaRepository;
+    private final TransactionPersistenceMapper mapper;
+
+    @Override
+    public Customer save(Customer customer) {
+<span class="fc" id="L34">        CustomerEntity entity = mapper.toCustomerEntity(customer);</span>
+<span class="fc" id="L35">        CustomerEntity saved = jpaRepository.save(entity);</span>
+<span class="fc" id="L36">        return mapper.toCustomer(saved);</span>
+    }
+
+    @Override
+    public Optional&lt;Customer&gt; findById(UUID id) {
+<span class="fc" id="L41">        return jpaRepository.findById(id).map(mapper::toCustomer);</span>
+    }
+
+    @Override
+    public Optional&lt;Customer&gt; findByDocument(String documentType, String documentNumber) {
+<span class="fc" id="L46">        return jpaRepository.findByDocumentTypeAndDocumentNumber(documentType, documentNumber)</span>
+<span class="fc" id="L47">                .map(mapper::toCustomer);</span>
+    }
+
+    @Override
+    public CustomerResult findOrCreate(Customer customer) {
+        // Idempotencia SOLO por documento (tipo + número)
+<span class="fc" id="L53">        Optional&lt;Customer&gt; existingByDocument = findByDocument(</span>
+<span class="fc" id="L54">                customer.getDocumentType(),</span>
+<span class="fc" id="L55">                customer.getDocumentNumber()</span>
+        );
+
+<span class="fc bfc" id="L58" title="All 2 branches covered.">        if (existingByDocument.isPresent()) {</span>
+<span class="fc" id="L59">            log.debug(&quot;Cliente existente encontrado por documento {}/{}&quot;,</span>
+<span class="fc" id="L60">                    customer.getDocumentType(), customer.getDocumentNumber());</span>
+<span class="fc" id="L61">            Customer updated = updateExistingCustomer(existingByDocument.get(), customer);</span>
+<span class="fc" id="L62">            return new CustomerResult(updated, false); // Cliente existente, no es nuevo</span>
+        }
+
+        // No existe, crear nuevo
+<span class="fc" id="L66">        log.debug(&quot;Creando nuevo cliente: {}/{}&quot;,</span>
+<span class="fc" id="L67">                customer.getDocumentType(), customer.getDocumentNumber());</span>
+<span class="fc" id="L68">        Customer newCustomer = save(customer);</span>
+<span class="fc" id="L69">        return new CustomerResult(newCustomer, true); // Cliente nuevo</span>
+    }
+
+    /**
+     * Actualiza los datos de un cliente existente manteniendo su ID.
+     * Permite que los datos evolucionen (cambio de teléfono, email, etc.)
+     * sin perder el historial de transacciones.
+     */
+    private Customer updateExistingCustomer(Customer existing, Customer newData) {
+        // Crear un nuevo Customer con el ID existente pero datos actualizados
+<span class="fc" id="L79">        Customer updated = Customer.builder()</span>
+<span class="fc" id="L80">                .id(existing.getId())</span>
+<span class="fc" id="L81">                .documentType(existing.getDocumentType()) // El documento no cambia</span>
+<span class="fc" id="L82">                .documentNumber(existing.getDocumentNumber())</span>
+<span class="fc" id="L83">                .countryCallingCode(newData.getCountryCallingCode())</span>
+<span class="fc" id="L84">                .phoneNumber(newData.getPhoneNumber())</span>
+<span class="fc" id="L85">                .email(newData.getEmail())</span>
+<span class="fc" id="L86">                .firstName(newData.getFirstName())</span>
+<span class="fc" id="L87">                .middleName(newData.getMiddleName())</span>
+<span class="fc" id="L88">                .lastName(newData.getLastName())</span>
+<span class="fc" id="L89">                .secondLastName(newData.getSecondLastName())</span>
+<span class="fc" id="L90">                .build();</span>
+
+<span class="fc" id="L92">        return save(updated);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

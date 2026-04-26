@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TransactionEntity.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">transaction-orchestrator</a> &gt; <a href="index.source.html" class="el_package">com.tumipay.orchestrator.infrastructure.adapter.out.persistence.entity</a> &gt; <span class="el_source">TransactionEntity.java</span></div><h1>TransactionEntity.java</h1><pre class="source lang-java linenums">package com.tumipay.orchestrator.infrastructure.adapter.out.persistence.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+/**
+ * Entidad JPA — solo preocupación de persistencia. Separada deliberadamente del modelo de dominio
+ * para mantener el dominio libre de anotaciones de framework (principio de Arquitectura Hexagonal).
+ */
+@Entity
+@Table(
+    name = &quot;transactions&quot;,
+    indexes = {
+        @Index(name = &quot;idx_client_transaction_id&quot;, columnList = &quot;client_transaction_id&quot;, unique = true)
+    }
+)
+@Getter
+<span class="pc" id="L23">@Setter</span>
+<span class="fc" id="L24">@NoArgsConstructor</span>
+<span class="fc" id="L25">@AllArgsConstructor</span>
+<span class="pc" id="L26">@Builder</span>
+public class TransactionEntity {
+
+    @Id
+    @Column(name = &quot;id&quot;, updatable = false, nullable = false)
+<span class="fc" id="L31">    private UUID id;</span>
+
+    @Column(name = &quot;client_transaction_id&quot;, nullable = false, unique = true, length = 100)
+<span class="fc" id="L34">    private String clientTransactionId;</span>
+
+    @Column(name = &quot;amount_cents&quot;, nullable = false)
+<span class="fc" id="L37">    private Long amountCents;</span>
+
+    @Column(name = &quot;currency_code&quot;, nullable = false, length = 3)
+<span class="fc" id="L40">    private String currencyCode;</span>
+
+    @Column(name = &quot;country_code&quot;, nullable = false, length = 2)
+<span class="fc" id="L43">    private String countryCode;</span>
+
+    @Column(name = &quot;payment_method_id&quot;, nullable = false, length = 50)
+<span class="fc" id="L46">    private String paymentMethodId;</span>
+
+    @Column(name = &quot;webhook_url&quot;, nullable = false, length = 500)
+<span class="fc" id="L49">    private String webhookUrl;</span>
+
+    @Column(name = &quot;redirect_url&quot;, nullable = false, length = 500)
+<span class="fc" id="L52">    private String redirectUrl;</span>
+
+    @Column(name = &quot;description&quot;, length = 255)
+<span class="fc" id="L55">    private String description;</span>
+
+    @Column(name = &quot;expiration_seconds&quot;)
+<span class="fc" id="L58">    private Long expirationSeconds;</span>
+
+    @Column(name = &quot;status&quot;, nullable = false, length = 20)
+<span class="fc" id="L61">    private String status;</span>
+
+    @Column(name = &quot;processed_at&quot;)
+<span class="fc" id="L64">    private LocalDateTime processedAt;</span>
+
+    @CreationTimestamp
+    @Column(name = &quot;created_at&quot;, updatable = false)
+<span class="fc" id="L68">    private LocalDateTime createdAt;</span>
+
+    @UpdateTimestamp
+    @Column(name = &quot;updated_at&quot;)
+<span class="nc" id="L72">    private LocalDateTime updatedAt;</span>
+
+    @ManyToOne(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinColumn(name = &quot;customer_id&quot;, referencedColumnName = &quot;id&quot;, nullable = false)
+<span class="fc" id="L76">    private CustomerEntity customer;</span>
+
+    @Version
+    @Column(name = &quot;version&quot;, nullable = false)
+<span class="fc" id="L80">    private Integer version;</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.tumipay.orchestrator.infrastructure.adapter.out.persistence.CustomerPersistenceAdapterTest
+-------------------------------------------------------------------------------
+Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.105 s -- in com.tumipay.orchestrator.infrastructure.adapter.out.persistence.CustomerPersistenceAdapterTest

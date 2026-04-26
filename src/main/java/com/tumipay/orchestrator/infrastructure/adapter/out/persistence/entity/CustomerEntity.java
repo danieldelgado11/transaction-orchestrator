@@ -6,11 +6,20 @@ import lombok.*;
 import java.util.UUID;
 
 /**
- * Entidad JPA que representa los datos de un cliente en la base de datos.
- * Almacena la información personal del cliente asociado a una transacción.
+ * Entidad JPA que representa un cliente en la base de datos.
+ *
+ * Decision: Customer es una Entity con identidad propia. Un cliente puede tener
+ * múltiples transacciones. Se busca/crea por documento (tipo+numero) o email
+ * para mantener idempotencia en la creación de clientes.
  */
 @Entity
-@Table(name = "customers")
+@Table(
+    name = "customers",
+    indexes = {
+        @Index(name = "idx_customers_email", columnList = "email", unique = true),
+        @Index(name = "idx_customers_document", columnList = "document_type, document_number", unique = true)
+    }
+)
 @Getter
 @Setter
 @NoArgsConstructor

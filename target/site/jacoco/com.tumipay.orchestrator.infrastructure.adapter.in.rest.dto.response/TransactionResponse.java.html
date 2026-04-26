@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TransactionResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">transaction-orchestrator</a> &gt; <a href="index.source.html" class="el_package">com.tumipay.orchestrator.infrastructure.adapter.in.rest.dto.response</a> &gt; <span class="el_source">TransactionResponse.java</span></div><h1>TransactionResponse.java</h1><pre class="source lang-java linenums">package com.tumipay.orchestrator.infrastructure.adapter.in.rest.dto.response;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Builder;
+import lombok.Getter;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+/**
+ * DTO de respuesta para los datos de una transacción.
+ * Representa la información devuelta al cliente después de crear o consultar una transacción.
+ */
+@Getter
+<span class="pc" id="L15">@Builder</span>
+public class TransactionResponse {
+
+    @JsonProperty(&quot;transaction_id&quot;)
+<span class="fc" id="L19">    private final UUID transactionId;</span>
+
+    @JsonProperty(&quot;processed_at&quot;)
+<span class="fc" id="L22">    private final LocalDateTime processedAt;</span>
+
+    @JsonProperty(&quot;client_transaction_id&quot;)
+<span class="fc" id="L25">    private final String clientTransactionId;</span>
+
+    @JsonProperty(&quot;payment_method_id&quot;)
+<span class="fc" id="L28">    private final String paymentMethodId;</span>
+
+    @JsonProperty(&quot;currency_code&quot;)
+<span class="fc" id="L31">    private final String currencyCode;</span>
+
+    @JsonProperty(&quot;country_code&quot;)
+<span class="fc" id="L34">    private final String countryCode;</span>
+
+    @JsonProperty(&quot;description&quot;)
+<span class="fc" id="L37">    private final String description;</span>
+
+    @JsonProperty(&quot;status&quot;)
+<span class="fc" id="L40">    private final String status;</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

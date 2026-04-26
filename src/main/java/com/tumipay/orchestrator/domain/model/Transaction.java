@@ -45,8 +45,8 @@ public class Transaction {
                 .id(UUID.randomUUID())
                 .clientTransactionId(clientTransactionId)
                 .amountCents(amountCents)
-                .currencyCode(currencyCode.trim().toUpperCase())
-                .countryCode(countryCode.trim().toUpperCase())
+                .currencyCode(normalizeCode(currencyCode))
+                .countryCode(normalizeCode(countryCode))
                 .paymentMethodId(paymentMethodId)
                 .webhookUrl(webhookUrl)
                 .redirectUrl(redirectUrl)
@@ -57,6 +57,10 @@ public class Transaction {
                 .processedAt(LocalDateTime.now())
                 .createdAt(LocalDateTime.now())
                 .build();
+    }
+
+    private static String normalizeCode(String code) {
+        return code == null ? null : code.trim().toUpperCase();
     }
 
     public Transaction withStatus(TransactionStatus newStatus) {

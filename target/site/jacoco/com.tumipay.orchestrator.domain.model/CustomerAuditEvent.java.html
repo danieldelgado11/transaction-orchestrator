@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CustomerAuditEvent.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">transaction-orchestrator</a> &gt; <a href="index.source.html" class="el_package">com.tumipay.orchestrator.domain.model</a> &gt; <span class="el_source">CustomerAuditEvent.java</span></div><h1>CustomerAuditEvent.java</h1><pre class="source lang-java linenums">package com.tumipay.orchestrator.domain.model;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+/**
+ * Evento de dominio que representa una operación de auditoría sobre un cliente.
+ * Este evento se publica en Kafka para ser procesado asíncronamente.
+ */
+@Getter
+<span class="pc" id="L16">@Builder</span>
+<span class="nc" id="L17">@NoArgsConstructor(force = true)</span>
+<span class="fc" id="L18">@AllArgsConstructor</span>
+public class CustomerAuditEvent {
+
+<span class="fc" id="L21">    private final UUID customerId;</span>
+<span class="fc" id="L22">    private final AuditAction action;</span>
+<span class="fc" id="L23">    private final String documentType;</span>
+<span class="fc" id="L24">    private final String documentNumber;</span>
+<span class="fc" id="L25">    private final String countryCallingCode;</span>
+<span class="fc" id="L26">    private final String phoneNumber;</span>
+<span class="fc" id="L27">    private final String email;</span>
+<span class="fc" id="L28">    private final String firstName;</span>
+<span class="fc" id="L29">    private final String middleName;</span>
+<span class="fc" id="L30">    private final String lastName;</span>
+<span class="fc" id="L31">    private final String secondLastName;</span>
+<span class="fc" id="L32">    private final String changedBy;</span>
+<span class="fc" id="L33">    private final LocalDateTime changedAt;</span>
+<span class="fc" id="L34">    private final UUID transactionId;</span>
+
+    public static CustomerAuditEvent fromCustomer(Customer customer, AuditAction action, UUID customerId, String changedBy, UUID transactionId) {
+<span class="fc" id="L37">        return CustomerAuditEvent.builder()</span>
+<span class="fc" id="L38">                .customerId(customerId)</span>
+<span class="fc" id="L39">                .action(action)</span>
+<span class="fc" id="L40">                .documentType(customer.getDocumentType())</span>
+<span class="fc" id="L41">                .documentNumber(customer.getDocumentNumber())</span>
+<span class="fc" id="L42">                .countryCallingCode(customer.getCountryCallingCode())</span>
+<span class="fc" id="L43">                .phoneNumber(customer.getPhoneNumber())</span>
+<span class="fc" id="L44">                .email(customer.getEmail())</span>
+<span class="fc" id="L45">                .firstName(customer.getFirstName())</span>
+<span class="fc" id="L46">                .middleName(customer.getMiddleName())</span>
+<span class="fc" id="L47">                .lastName(customer.getLastName())</span>
+<span class="fc" id="L48">                .secondLastName(customer.getSecondLastName())</span>
+<span class="fc" id="L49">                .changedBy(changedBy)</span>
+<span class="fc" id="L50">                .changedAt(LocalDateTime.now())</span>
+<span class="fc" id="L51">                .transactionId(transactionId)</span>
+<span class="fc" id="L52">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

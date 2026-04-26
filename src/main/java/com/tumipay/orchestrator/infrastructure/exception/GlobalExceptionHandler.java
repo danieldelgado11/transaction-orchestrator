@@ -1,5 +1,6 @@
 package com.tumipay.orchestrator.infrastructure.exception;
 
+import com.tumipay.orchestrator.domain.exception.ConcurrentModificationException;
 import com.tumipay.orchestrator.domain.exception.DuplicateTransactionException;
 import com.tumipay.orchestrator.domain.exception.PaymentProviderNotFoundException;
 import com.tumipay.orchestrator.domain.exception.TransactionNotFoundException;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
  *   003 - Transacción no encontrada
  *   004 - Proveedor de pago no encontrado
  *   005 - Error interno del servidor
+ *   006 - Conflicto de concurrencia (modificación simultánea)
  */
 @Slf4j
 @RestControllerAdvice
@@ -60,6 +62,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error("004", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ConcurrentModificationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleConcurrentModification(ConcurrentModificationException ex) {
+        log.warn("Conflicto de concurrencia detectado: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(ApiResponse.error("006", ex.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)

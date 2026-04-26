@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>KafkaConsumerConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">transaction-orchestrator</a> &gt; <a href="index.source.html" class="el_package">com.tumipay.orchestrator.infrastructure.adapter.out.messaging.kafka</a> &gt; <span class="el_source">KafkaConsumerConfig.java</span></div><h1>KafkaConsumerConfig.java</h1><pre class="source lang-java linenums">package com.tumipay.orchestrator.infrastructure.adapter.out.messaging.kafka;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.annotation.EnableKafka;
+import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+import org.springframework.kafka.core.ConsumerFactory;
+
+/**
+ * Configuración adicional para consumidores Kafka.
+ */
+@EnableKafka
+@Configuration
+<span class="fc" id="L14">public class KafkaConsumerConfig {</span>
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory&lt;String, Object&gt; kafkaListenerContainerFactory(
+            ConsumerFactory&lt;String, Object&gt; consumerFactory) {
+<span class="fc" id="L19">        ConcurrentKafkaListenerContainerFactory&lt;String, Object&gt; factory =</span>
+                new ConcurrentKafkaListenerContainerFactory&lt;&gt;();
+<span class="fc" id="L21">        factory.setConsumerFactory(consumerFactory);</span>
+        // Procesar un mensaje a la vez para garantizar orden en auditoría
+<span class="fc" id="L23">        factory.setConcurrency(1);</span>
+<span class="fc" id="L24">        return factory;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TransactionAuditEntity.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">transaction-orchestrator</a> &gt; <a href="index.source.html" class="el_package">com.tumipay.orchestrator.infrastructure.adapter.out.persistence.entity</a> &gt; <span class="el_source">TransactionAuditEntity.java</span></div><h1>TransactionAuditEntity.java</h1><pre class="source lang-java linenums">package com.tumipay.orchestrator.infrastructure.adapter.out.persistence.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+/**
+ * Entidad JPA para auditoría de cambios en transacciones.
+ * Almacena un registro histórico de todas las operaciones realizadas sobre transactions.
+ */
+@Entity
+@Table(name = &quot;transaction_audit&quot;)
+@Getter
+<span class="nc" id="L17">@Setter</span>
+<span class="fc" id="L18">@NoArgsConstructor</span>
+<span class="fc" id="L19">@AllArgsConstructor</span>
+<span class="pc" id="L20">@Builder</span>
+public class TransactionAuditEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = &quot;id&quot;, updatable = false, nullable = false)
+<span class="fc" id="L26">    private UUID id;</span>
+
+    @Column(name = &quot;transaction_id&quot;, nullable = false)
+<span class="fc" id="L29">    private UUID transactionId;</span>
+
+    @Column(name = &quot;action&quot;, nullable = false, length = 10)
+<span class="fc" id="L32">    private String action;</span>
+
+    @Column(name = &quot;client_transaction_id&quot;, length = 100)
+<span class="fc" id="L35">    private String clientTransactionId;</span>
+
+    @Column(name = &quot;amount_cents&quot;)
+<span class="fc" id="L38">    private Long amountCents;</span>
+
+    @Column(name = &quot;currency_code&quot;, length = 3)
+<span class="fc" id="L41">    private String currencyCode;</span>
+
+    @Column(name = &quot;country_code&quot;, length = 2)
+<span class="nc" id="L44">    private String countryCode;</span>
+
+    @Column(name = &quot;payment_method_id&quot;, length = 50)
+<span class="nc" id="L47">    private String paymentMethodId;</span>
+
+    @Column(name = &quot;webhook_url&quot;, length = 500)
+<span class="nc" id="L50">    private String webhookUrl;</span>
+
+    @Column(name = &quot;redirect_url&quot;, length = 500)
+<span class="nc" id="L53">    private String redirectUrl;</span>
+
+    @Column(name = &quot;description&quot;, length = 255)
+<span class="nc" id="L56">    private String description;</span>
+
+    @Column(name = &quot;expiration_seconds&quot;)
+<span class="nc" id="L59">    private Long expirationSeconds;</span>
+
+    @Column(name = &quot;status&quot;, length = 20)
+<span class="fc" id="L62">    private String status;</span>
+
+    @Column(name = &quot;old_status&quot;, length = 20)
+<span class="nc" id="L65">    private String oldStatus;</span>
+
+    @Column(name = &quot;processed_at&quot;)
+<span class="nc" id="L68">    private LocalDateTime processedAt;</span>
+
+    @Column(name = &quot;customer_id&quot;)
+<span class="fc" id="L71">    private UUID customerId;</span>
+
+    @Column(name = &quot;changed_by&quot;, length = 100)
+<span class="nc" id="L74">    private String changedBy;</span>
+
+    @CreationTimestamp
+    @Column(name = &quot;changed_at&quot;, updatable = false)
+<span class="nc" id="L78">    private LocalDateTime changedAt;</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

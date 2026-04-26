@@ -71,7 +71,11 @@ public class TransactionEntity {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
-    @JoinColumn(name = "customer_id", referencedColumnName = "id")
+    @ManyToOne(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinColumn(name = "customer_id", referencedColumnName = "id", nullable = false)
     private CustomerEntity customer;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Integer version;
 }

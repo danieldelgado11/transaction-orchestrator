@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CustomerAuditEntity.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">transaction-orchestrator</a> &gt; <a href="index.source.html" class="el_package">com.tumipay.orchestrator.infrastructure.adapter.out.persistence.entity</a> &gt; <span class="el_source">CustomerAuditEntity.java</span></div><h1>CustomerAuditEntity.java</h1><pre class="source lang-java linenums">package com.tumipay.orchestrator.infrastructure.adapter.out.persistence.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+/**
+ * Entidad JPA para auditoría de cambios en clientes.
+ * Almacena un registro histórico de todas las operaciones realizadas sobre customer.
+ */
+@Entity
+@Table(name = &quot;customer_audit&quot;)
+@Getter
+<span class="nc" id="L17">@Setter</span>
+<span class="fc" id="L18">@NoArgsConstructor</span>
+<span class="fc" id="L19">@AllArgsConstructor</span>
+<span class="pc" id="L20">@Builder</span>
+public class CustomerAuditEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = &quot;id&quot;, updatable = false, nullable = false)
+<span class="fc" id="L26">    private UUID id;</span>
+
+    @Column(name = &quot;customer_id&quot;, nullable = false)
+<span class="fc" id="L29">    private UUID customerId;</span>
+
+    @Column(name = &quot;action&quot;, nullable = false, length = 10)
+<span class="fc" id="L32">    private String action;</span>
+
+    @Column(name = &quot;document_type&quot;, length = 20)
+<span class="fc" id="L35">    private String documentType;</span>
+
+    @Column(name = &quot;document_number&quot;, length = 50)
+<span class="fc" id="L38">    private String documentNumber;</span>
+
+    @Column(name = &quot;country_calling_code&quot;, length = 6)
+<span class="nc" id="L41">    private String countryCallingCode;</span>
+
+    @Column(name = &quot;phone_number&quot;, length = 20)
+<span class="nc" id="L44">    private String phoneNumber;</span>
+
+    @Column(name = &quot;email&quot;, length = 254)
+<span class="fc" id="L47">    private String email;</span>
+
+    @Column(name = &quot;first_name&quot;, length = 100)
+<span class="nc" id="L50">    private String firstName;</span>
+
+    @Column(name = &quot;middle_name&quot;, length = 100)
+<span class="nc" id="L53">    private String middleName;</span>
+
+    @Column(name = &quot;last_name&quot;, length = 100)
+<span class="nc" id="L56">    private String lastName;</span>
+
+    @Column(name = &quot;second_last_name&quot;, length = 100)
+<span class="nc" id="L59">    private String secondLastName;</span>
+
+    @Column(name = &quot;changed_by&quot;, length = 100)
+<span class="fc" id="L62">    private String changedBy;</span>
+
+    @CreationTimestamp
+    @Column(name = &quot;changed_at&quot;, updatable = false)
+<span class="nc" id="L66">    private LocalDateTime changedAt;</span>
+
+    @Column(name = &quot;transaction_id&quot;)
+<span class="fc" id="L69">    private UUID transactionId;</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

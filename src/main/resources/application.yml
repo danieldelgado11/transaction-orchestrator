@@ -41,8 +41,63 @@ springdoc:
     path: /api-docs
   swagger-ui:
     path: /swagger-ui.html
+    use-root-path: true
+  use-management-port: false
 
 logging:
   level:
     com.tumipay: INFO
     org.hibernate.SQL: WARN
+
+---
+# Kafka Configuration
+spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      max-request-size: 1048576  # 1MB - evita mensajes gigantes
+    consumer:
+      group-id: audit-consumer-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      max-partition-fetch-bytes: 52428800  # 50MB
+      fetch-max-bytes: 52428800            # 50MB
+      properties:
+        spring.json.trusted.packages: com.tumipay.orchestrator.domain.model
+        spring.json.use.type.headers: true
+    listener:
+      missing-topics-fatal: false
+
+# Custom Kafka Topics
+kafka:
+  topics:
+    customer-audit: customer-audit-events
+    transaction-audit: transaction-audit-events
+
+---
+# Resilience4j Circuit Breaker Configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      payment-provider:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 30s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+        slowCallRateThreshold: 80
+        slowCallDurationThreshold: 5s
+        recordExceptions:
+          - java.io.IOException
+          - java.net.SocketTimeoutException
+          - org.springframework.web.client.ResourceAccessException
+        ignoreExceptions:
+          - com.tumipay.orchestrator.domain.exception.PaymentProviderNotFoundException
