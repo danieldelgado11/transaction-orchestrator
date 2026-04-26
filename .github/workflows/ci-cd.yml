@@ -97,7 +97,7 @@ jobs:
       - name: SonarQube analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
         run: mvn -B sonar:sonar
               -Dsonar.projectKey=transaction-orchestrator
               -Dsonar.host.url=$SONAR_HOST_URL
