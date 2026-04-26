@@ -17,7 +17,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -29,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
+@org.springframework.test.context.ActiveProfiles("test")
 class TransactionIntegrationTest {
 
     @Container
@@ -37,12 +40,27 @@ class TransactionIntegrationTest {
             .withUsername("test")
             .withPassword("test");
 
+    @Container
+    static GenericContainer<?> kafka = new GenericContainer<>("docker.redpanda.com/redpandadata/redpanda:v23.2.14")
+            .withExposedPorts(9092)
+            .withCommand(
+                "redpanda", "start",
+                "--kafka-addr", "internal://0.0.0.0:9092,external://0.0.0.0:9093",
+                "--advertise-kafka-addr", "internal://localhost:9092,external://localhost:9093",
+                "--smp", "1",
+                "--memory", "512M",
+                "--mode", "dev-container",
+                "--default-log-level=warn"
+            )
+            .waitingFor(Wait.forLogMessage(".*Successfully started Redpanda!.*", 1));
+
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
         registry.add("spring.flyway.enabled", () -> "true");
+        registry.add("spring.kafka.bootstrap-servers", () -> kafka.getHost() + ":" + kafka.getMappedPort(9092));
     }
 
     @Autowired
